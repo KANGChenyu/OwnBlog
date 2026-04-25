@@ -2,7 +2,7 @@
 
 Nebula Blog 是一个面向个人品牌展示、技术文章沉淀、项目作品集和后台内容管理的暗黑科技风个人博客系统。
 
-当前版本是 P0 可运行原型：前台页面、文章阅读、项目展示、搜索/归档、后台 Dashboard、文章管理和 Markdown 编辑器已经具备完整界面与本地 seed 数据。数据库、真实认证、上传和 AI 功能保留了结构入口，适合后续继续迭代。
+当前版本是 P1 本地 CMS 原型：前台页面、文章阅读、项目展示、搜索/归档、后台 Dashboard、Markdown 编辑器已经具备完整界面；后台文章管理已接入 Prisma + SQLite，可从数据库读取、创建、编辑和删除文章。
 
 ## 技术栈
 
@@ -13,7 +13,7 @@ Nebula Blog 是一个面向个人品牌展示、技术文章沉淀、项目作�
 - React Markdown + remark-gfm + rehype-highlight
 - Lucide React
 - Vitest
-- Prisma schema for PostgreSQL
+- Prisma + SQLite local CMS storage
 
 ## 功能
 
@@ -46,18 +46,19 @@ npm run build
 npm run start
 npm run lint
 npm run test
-npx prisma migrate dev
-npx prisma db seed
+npm run db:init
+npm run db:seed
+npm run db:reset
 ```
 
-`npx prisma migrate dev` 需要先配置 PostgreSQL，并复制 `.env.example` 为 `.env`。
+当前 Node 24 + Prisma 6 Windows 环境下，`npx prisma migrate dev` 会触发 schema-engine 异常；项目提供 `npm run db:init` 作为本地 SQLite 建表脚本，`npm run db:reset` 会重建 `prisma/dev.db` 并写入 seed 数据。
 
 ## 环境变量
 
 参考 `.env.example`：
 
 ```env
-DATABASE_URL="postgresql://user:password@localhost:5432/nebula_blog"
+DATABASE_URL="file:./dev.db"
 NEXTAUTH_SECRET="replace-with-a-long-random-secret"
 NEXTAUTH_URL="http://localhost:3000"
 ADMIN_EMAIL="admin@example.com"
@@ -87,9 +88,9 @@ src
 
 ## 数据库
 
-`prisma/schema.prisma` 已定义未来 CMS 所需模型：用户、文章、分类、标签、评论、项目、留言和友链。
+`prisma/schema.prisma` 已定义 CMS 所需模型：用户、文章、分类、标签、评论、项目、留言和友链。
 
-P0 的页面读取 `src/lib/content.ts`，后续可以逐步把 `src/lib/content-query.ts` 的数据源替换为 Prisma 查询。
+后台文章管理已经读取 Prisma SQLite 数据库。P0 的部分前台页面仍读取 `src/lib/content.ts`，后续可以逐步把 `src/lib/content-query.ts` 的数据源替换为 Prisma 查询。
 
 ## 后续计划
 

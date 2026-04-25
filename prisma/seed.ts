@@ -1,11 +1,19 @@
 import { PrismaClient } from "@prisma/client";
+import {
+  categories,
+  friends,
+  guestbookMessages,
+  posts,
+  projects,
+  tags,
+} from "../src/lib/content";
 
 const prisma = new PrismaClient();
 
 async function main() {
   const admin = await prisma.user.upsert({
     where: { email: "admin@example.com" },
-    update: {},
+    update: { name: "KCY" },
     create: {
       email: "admin@example.com",
       name: "KCY",
@@ -13,34 +21,150 @@ async function main() {
     },
   });
 
-  const category = await prisma.category.upsert({
-    where: { slug: "rag" },
-    update: {},
-    create: {
-      name: "RAG",
-      slug: "rag",
-      description: "检索增强生成与知识库工程。",
-      color: "#06B6D4",
-      icon: "Network",
-    },
-  });
+  for (const category of categories) {
+    await prisma.category.upsert({
+      where: { slug: category.slug },
+      update: {
+        name: category.name,
+        description: category.description,
+        color: category.color,
+        icon: category.icon,
+      },
+      create: category,
+    });
+  }
 
-  await prisma.post.upsert({
-    where: { slug: "rag-knowledge-base" },
-    update: {},
-    create: {
-      title: "从零实现一个 RAG 知识库问答系统",
-      slug: "rag-knowledge-base",
-      excerpt: "从文档解析、切分、向量化、召回到重排，完整拆解 RAG 系统的工程路径。",
-      content: "# 从零实现一个 RAG 知识库问答系统\n\n这是数据库 seed 示例。",
-      status: "PUBLISHED",
-      featured: true,
-      pinned: true,
-      authorId: admin.id,
-      categoryId: category.id,
-      publishedAt: new Date(),
-    },
-  });
+  for (const tag of tags) {
+    await prisma.tag.upsert({
+      where: { slug: tag.slug },
+      update: {
+        name: tag.name,
+        color: tag.color,
+      },
+      create: tag,
+    });
+  }
+
+  for (const post of posts) {
+    const category = await prisma.category.findUniqueOrThrow({
+      where: { slug: post.category },
+    });
+
+    await prisma.post.upsert({
+      where: { slug: post.slug },
+      update: {
+        title: post.title,
+        excerpt: post.excerpt,
+        content: post.content,
+        cover: post.cover,
+        status: post.status.toUpperCase() as "DRAFT" | "PUBLISHED" | "HIDDEN" | "ARCHIVED",
+        featured: post.featured,
+        pinned: post.pinned,
+        views: post.views,
+        likes: post.likes,
+        seoTitle: post.seoTitle,
+        seoDescription: post.seoDescription,
+        categoryId: category.id,
+        publishedAt: new Date(post.publishedAt),
+      },
+      create: {
+        title: post.title,
+        slug: post.slug,
+        excerpt: post.excerpt,
+        content: post.content,
+        cover: post.cover,
+        status: post.status.toUpperCase() as "DRAFT" | "PUBLISHED" | "HIDDEN" | "ARCHIVED",
+        featured: post.featured,
+        pinned: post.pinned,
+        views: post.views,
+        likes: post.likes,
+        seoTitle: post.seoTitle,
+        seoDescription: post.seoDescription,
+        authorId: admin.id,
+        categoryId: category.id,
+        publishedAt: new Date(post.publishedAt),
+      },
+    });
+
+    const savedPost = await prisma.post.findUniqueOrThrow({ where: { slug: post.slug } });
+    await prisma.postTag.deleteMany({ where: { postId: savedPost.id } });
+    for (const tagSlug of post.tags) {
+      const tag = await prisma.tag.findUnique({ where: { slug: tagSlug } });
+      if (tag) {
+        await prisma.postTag.create({
+          data: { postId: savedPost.id, tagId: tag.id },
+        });
+      }
+    }
+  }
+
+  for (const project of projects) {
+    await prisma.project.upsert({
+      where: { slug: project.slug },
+      update: {
+        title: project.title,
+        summary: project.summary,
+        content: project.content,
+        cover: project.cover,
+        techStack: project.techStack.join(","),
+        status: project.status.toUpperCase() as "BUILDING" | "COMPLETED" | "MAINTAINED" | "ARCHIVED",
+        github: project.github,
+        demo: project.demo,
+        highlights: project.highlights.join("\n"),
+        publishedAt: new Date(project.publishedAt),
+      },
+      create: {
+        title: project.title,
+        slug: project.slug,
+        summary: project.summary,
+        content: project.content,
+        cover: project.cover,
+        techStack: project.techStack.join(","),
+        status: project.status.toUpperCase() as "BUILDING" | "COMPLETED" | "MAINTAINED" | "ARCHIVED",
+        github: project.github,
+        demo: project.demo,
+        highlights: project.highlights.join("\n"),
+        publishedAt: new Date(project.publishedAt),
+      },
+    });
+  }
+
+  for (const message of guestbookMessages) {
+    await prisma.guestbookMessage.upsert({
+      where: { id: `${message.name}-${message.createdAt}` },
+      update: {},
+      create: {
+        id: `${message.name}-${message.createdAt}`,
+        nickname: message.name,
+        avatar: message.avatar,
+        content: message.content,
+        likes: message.likes,
+        pinned: Boolean(message.pinned),
+        approved: true,
+      },
+    });
+  }
+
+  for (const friend of friends) {
+    await prisma.friendLink.upsert({
+      where: { url: friend.url },
+      update: {
+        name: friend.name,
+        description: friend.description,
+        logo: friend.logo,
+        owner: friend.owner,
+        approved: friend.status === "approved",
+      },
+      create: {
+        name: friend.name,
+        description: friend.description,
+        url: friend.url,
+        logo: friend.logo,
+        owner: friend.owner,
+        approved: friend.status === "approved",
+      },
+    });
+  }
 }
 
 main()

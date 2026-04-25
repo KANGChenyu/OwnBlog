@@ -3,7 +3,7 @@ generator client {
 }
 
 datasource db {
-  provider = "postgresql"
+  provider = "sqlite"
   url      = env("DATABASE_URL")
 }
 
@@ -108,11 +108,11 @@ model Project {
   summary     String
   content     String
   cover       String?
-  techStack   String[]
+  techStack   String
   status      ProjectStatus @default(BUILDING)
   github      String?
   demo        String?
-  highlights  String[]
+  highlights  String
   sort        Int           @default(0)
   createdAt   DateTime      @default(now())
   updatedAt   DateTime      @updatedAt
@@ -136,7 +136,7 @@ model FriendLink {
   id          String   @id @default(cuid())
   name        String
   description String
-  url         String
+  url         String   @unique
   logo        String?
   owner       String
   approved    Boolean  @default(false)
