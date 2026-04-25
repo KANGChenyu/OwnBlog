@@ -1,0 +1,145 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum ContentStatus {
+  DRAFT
+  PUBLISHED
+  HIDDEN
+  ARCHIVED
+}
+
+enum ProjectStatus {
+  BUILDING
+  COMPLETED
+  MAINTAINED
+  ARCHIVED
+}
+
+model User {
+  id        String   @id @default(cuid())
+  email     String   @unique
+  name      String
+  password  String
+  role      String   @default("ADMIN")
+  posts     Post[]
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Category {
+  id          String   @id @default(cuid())
+  name        String
+  slug        String   @unique
+  description String
+  icon        String?
+  color       String
+  sort        Int      @default(0)
+  posts       Post[]
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+model Tag {
+  id        String   @id @default(cuid())
+  name      String
+  slug      String   @unique
+  color     String
+  posts     PostTag[]
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Post {
+  id             String        @id @default(cuid())
+  title          String
+  slug           String        @unique
+  excerpt        String
+  content        String
+  cover          String?
+  status         ContentStatus @default(DRAFT)
+  featured       Boolean       @default(false)
+  pinned         Boolean       @default(false)
+  views          Int           @default(0)
+  likes          Int           @default(0)
+  seoTitle       String?
+  seoDescription String?
+  authorId       String
+  categoryId     String
+  author         User          @relation(fields: [authorId], references: [id])
+  category       Category      @relation(fields: [categoryId], references: [id])
+  tags           PostTag[]
+  comments       Comment[]
+  createdAt      DateTime      @default(now())
+  updatedAt      DateTime      @updatedAt
+  publishedAt    DateTime?
+}
+
+model PostTag {
+  postId String
+  tagId  String
+  post   Post   @relation(fields: [postId], references: [id], onDelete: Cascade)
+  tag    Tag    @relation(fields: [tagId], references: [id], onDelete: Cascade)
+
+  @@id([postId, tagId])
+}
+
+model Comment {
+  id        String        @id @default(cuid())
+  postId    String
+  nickname  String
+  email     String?
+  content   String
+  status    ContentStatus @default(DRAFT)
+  post      Post          @relation(fields: [postId], references: [id], onDelete: Cascade)
+  createdAt DateTime      @default(now())
+  updatedAt DateTime      @updatedAt
+}
+
+model Project {
+  id          String        @id @default(cuid())
+  title       String
+  slug        String        @unique
+  summary     String
+  content     String
+  cover       String?
+  techStack   String[]
+  status      ProjectStatus @default(BUILDING)
+  github      String?
+  demo        String?
+  highlights  String[]
+  sort        Int           @default(0)
+  createdAt   DateTime      @default(now())
+  updatedAt   DateTime      @updatedAt
+  publishedAt DateTime?
+}
+
+model GuestbookMessage {
+  id        String   @id @default(cuid())
+  nickname  String
+  email     String?
+  avatar    String?
+  content   String
+  pinned    Boolean  @default(false)
+  likes     Int      @default(0)
+  approved  Boolean  @default(false)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model FriendLink {
+  id          String   @id @default(cuid())
+  name        String
+  description String
+  url         String
+  logo        String?
+  owner       String
+  approved    Boolean  @default(false)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
